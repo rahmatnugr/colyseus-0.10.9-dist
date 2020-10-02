@@ -45,7 +45,7 @@ export declare class MatchMaker {
     protected getRoomsWithScore(roomName: string, clientOptions: ClientOptions): Promise<RoomWithScore[]>;
     protected createRoomReferences(room: Room, init?: boolean): Promise<boolean>;
     protected clearRoomReferences(room: Room): void;
-    protected awaitRoomAvailable(roomToJoin: string): Promise<{}>;
+    protected awaitRoomAvailable(roomToJoin: string): Promise<unknown>;
     protected getRoomChannel(roomId: string): string;
     protected getHandlerConcurrencyKey(name: string): string;
     private onClientJoinRoom;

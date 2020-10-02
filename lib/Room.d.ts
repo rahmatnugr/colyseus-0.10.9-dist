@@ -5,7 +5,7 @@ import { Client } from '.';
 import { Presence } from './presence/Presence';
 import { Serializer } from './serializer/Serializer';
 import { Deferred } from './Utils';
-export declare type SimulationCallback = (deltaTime?: number) => void;
+export declare type SimulationCallback = (deltaTime: number) => void;
 export declare type RoomConstructor<T = any> = new (presence?: Presence) => Room<T>;
 export interface RoomAvailable {
     roomId: string;
@@ -53,13 +53,13 @@ export declare abstract class Room<T = any> extends EventEmitter {
     onDispose?(): void | Promise<any>;
     requestJoin(options: any, isNew?: boolean): number | boolean;
     onAuth(options: any): boolean | Promise<any>;
-    readonly locked: boolean;
+    get locked(): boolean;
     hasReachedMaxClients(): boolean;
     setSeatReservationTime(seconds: number): this;
     hasReservedSeat(sessionId: string): boolean;
     setSimulationInterval(callback: SimulationCallback, delay?: number): void;
     setPatchRate(milliseconds: number): void;
-    setState(newState: any): void;
+    setState(newState: T): void;
     setMetadata(meta: any): void;
     lock(): void;
     unlock(): void;
@@ -67,7 +67,7 @@ export declare abstract class Room<T = any> extends EventEmitter {
     broadcast(data: any, options?: BroadcastOptions): boolean;
     getAvailableData(): Promise<RoomAvailable>;
     disconnect(): Promise<any>;
-    readonly serializer: string;
+    get serializer(): string;
     protected _getSerializer?(): Serializer<T>;
     protected sendState(client: Client): void;
     protected broadcastPatch(): boolean;

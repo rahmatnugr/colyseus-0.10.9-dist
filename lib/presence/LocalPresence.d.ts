@@ -1,8 +1,9 @@
+/// <reference types="node" />
 import { Presence } from './Presence';
+import { EventEmitter } from 'events';
 export declare class LocalPresence implements Presence {
-    channels: {
-        [roomId: string]: boolean;
-    };
+    channels: EventEmitter;
+    private listenersByTopic;
     data: {
         [roomName: string]: string[];
     };
@@ -15,7 +16,7 @@ export declare class LocalPresence implements Presence {
         [name: string]: string | number;
     };
     private timeouts;
-    subscribe(topic: string, callback: Function): this;
+    subscribe(topic: string, callback: (...args: any[]) => void): this;
     unsubscribe(topic: string): this;
     publish(topic: string, data: any): this;
     exists(roomId: string): Promise<boolean>;

@@ -23,14 +23,14 @@ export declare enum IpcProtocol {
 }
 export declare function decode(message: any): any;
 export declare const send: {
-    [Protocol.USER_ID]: (client: Client) => void;
-    [Protocol.JOIN_ERROR]: (client: Client, message: string) => void;
-    [Protocol.JOIN_REQUEST]: (client: Client, requestId: number, roomId: string, processId: string) => void;
-    [Protocol.JOIN_ROOM]: (client: Client, sessionId: string, serializerId: string, handshake?: number[]) => void;
-    [Protocol.ROOM_STATE]: (client: Client, bytes: number[]) => void;
-    [Protocol.ROOM_STATE_PATCH]: (client: Client, bytes: number[]) => void;
-    [Protocol.ROOM_DATA]: (client: Client, data: any, encode?: boolean) => void;
-    [Protocol.ROOM_LIST]: (client: Client, requestId: number, rooms: RoomAvailable[]) => void;
+    1: (client: Client) => void;
+    11: (client: Client, message: string) => void;
+    9: (client: Client, requestId: number, roomId: string, processId: string) => void;
+    10: (client: Client, sessionId: string, serializerId: string, handshake?: number[]) => void;
+    14: (client: Client, bytes: number[]) => void;
+    15: (client: Client, bytes: number[]) => void;
+    13: (client: Client, data: any, encode?: boolean) => void;
+    20: (client: Client, requestId: number, rooms: RoomAvailable[]) => void;
 };
 export declare function utf8Write(buff: Buffer, offset: number, str?: string): void;
 export declare function utf8Length(str?: string): number;

@@ -27,12 +27,13 @@ export declare class Server {
     constructor(options?: ServerOptions);
     attach(options: ServerOptions): void;
     listen(port: number, hostname?: string, backlog?: number, listeningListener?: Function): void;
+    registerProcessForDiscovery(server: net.Server | http.Server): void;
     register(name: string, handler: RoomConstructor, options?: any): Promise<RegisteredHandler>;
     gracefullyShutdown(exit?: boolean): Promise<void>;
     onShutdown(callback: () => void | Promise<any>): void;
     protected onShutdownCallback: () => void | Promise<any>;
     protected autoTerminateUnresponsiveClients(pingTimeout: number): void;
     protected verifyClient: (info: any, next: any) => Promise<any>;
-    protected onConnection: (client: Client, req?: any) => void;
+    protected onConnection: (client: Client, req?: http.IncomingMessage & any) => void;
     protected onMessageMatchMaking(client: Client, message: any): void;
 }
