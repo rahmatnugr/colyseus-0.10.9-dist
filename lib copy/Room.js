@@ -14,7 +14,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const notepack_io_1 = __importDefault(require("notepack.io"));
 const timer_1 = __importDefault(require("@gamestdio/timer"));
 const events_1 = require("events");
-const RemoteClient_1 = require("./presence/RemoteClient");
 const SchemaSerializer_1 = require("./serializer/SchemaSerializer");
 const Protocol_1 = require("./Protocol");
 const Utils_1 = require("./Utils");
@@ -31,7 +30,6 @@ class Room extends events_1.EventEmitter {
         this.autoDispose = true;
         this.metadata = null;
         this.clients = [];
-        this.remoteClients = {};
         // seat reservation & reconnection
         this.seatReservationTime = DEFAULT_SEAT_RESERVATION_TIME;
         this.reservedSeats = new Set();
@@ -302,20 +300,6 @@ class Room extends events_1.EventEmitter {
         this.clock.stop();
         return userReturnData || Promise.resolve();
     }
-    // allow remote clients to trigger events on themselves
-    _emitOnClient(sessionId, event, args) {
-        const remoteClient = this.remoteClients[sessionId];
-        if (!remoteClient) {
-            Debug_1.debugAndPrintError(`trying to send event ("${event}") to non-existing remote client (${sessionId})`);
-            return;
-        }
-        if (typeof (event) !== 'string') {
-            remoteClient.emit('message', event);
-        }
-        else {
-            remoteClient.emit(event, args);
-        }
-    }
     _onMessage(client, message) {
         message = Protocol_1.decode(message);
         if (!message) {
@@ -339,10 +323,6 @@ class Room extends events_1.EventEmitter {
     }
     _onJoin(client, options, auth) {
         // create remote client instance.
-        if (client.remote) {
-            client = (new RemoteClient_1.RemoteClient(client, this.roomId, this.presence));
-            this.remoteClients[client.sessionId] = client;
-        }
         this.clients.push(client);
         // delete seat reservation
         this.reservedSeats.delete(client.sessionId);
@@ -391,10 +371,6 @@ class Room extends events_1.EventEmitter {
                 }
             }
             this.emit('leave', client);
-            // remove remote client reference
-            if (client instanceof RemoteClient_1.RemoteClient) {
-                delete this.remoteClients[client.sessionId];
-            }
             // dispose immediatelly if client reconnection isn't set up.
             const willDispose = this._disposeIfEmpty();
             // unlock if room is available for new connections

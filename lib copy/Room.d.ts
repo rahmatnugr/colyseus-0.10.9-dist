@@ -1,8 +1,8 @@
+/// <reference types="node" />
 import Clock from '@gamestdio/timer';
 import { EventEmitter } from 'events';
 import { Client } from '.';
 import { Presence } from './presence/Presence';
-import { RemoteClient } from './presence/RemoteClient';
 import { Serializer } from './serializer/Serializer';
 import { Deferred } from './Utils';
 export declare type SimulationCallback = (deltaTime?: number) => void;
@@ -28,9 +28,6 @@ export declare abstract class Room<T = any> extends EventEmitter {
     metadata: any;
     presence: Presence;
     clients: Client[];
-    protected remoteClients: {
-        [sessionId: string]: RemoteClient;
-    };
     protected seatReservationTime: number;
     protected reservedSeats: Set<string>;
     protected reservedSeatTimeouts: {
@@ -80,7 +77,6 @@ export declare abstract class Room<T = any> extends EventEmitter {
     protected resetAutoDisposeTimeout(timeoutInSeconds: number): void;
     protected _disposeIfEmpty(): boolean;
     protected _dispose(): Promise<any>;
-    private _emitOnClient;
     private _onMessage;
     private _onJoin;
     private _onLeave;

@@ -27,7 +27,6 @@ export declare class Server {
     constructor(options?: ServerOptions);
     attach(options: ServerOptions): void;
     listen(port: number, hostname?: string, backlog?: number, listeningListener?: Function): void;
-    registerProcessForDiscovery(server: net.Server | http.Server): void;
     register(name: string, handler: RoomConstructor, options?: any): Promise<RegisteredHandler>;
     gracefullyShutdown(exit?: boolean): Promise<void>;
     onShutdown(callback: () => void | Promise<any>): void;

@@ -446,8 +446,6 @@ class MatchMaker {
     }
     disposeRoom(roomName, room) {
         Debug_1.debugMatchMaking('disposing \'%s\' (%s) on process %d', roomName, room.roomId, process.pid);
-        // remove all room listeners.
-        room.removeAllListeners();
         // emit disposal on registered session handler
         this.handlers[roomName].emit('dispose', room);
         // remove from alive rooms

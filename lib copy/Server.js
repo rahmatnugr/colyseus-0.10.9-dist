@@ -11,7 +11,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const url_parse_1 = __importDefault(require("url-parse"));
+const url_1 = __importDefault(require("url"));
 const ws_1 = __importDefault(require("ws"));
 const Debug_1 = require("./Debug");
 const MatchMaker_1 = require("./MatchMaker");
@@ -19,31 +19,42 @@ const Errors_1 = require("./Errors");
 const index_1 = require("./index");
 const Protocol_1 = require("./Protocol");
 const Utils_1 = require("./Utils");
+const discovery_1 = require("./discovery");
+const LocalPresence_1 = require("./presence/LocalPresence");
 function noop() { }
 function heartbeat() { this.pingCount = 0; }
 class Server {
     constructor(options = {}) {
+        this.processId = index_1.generateId();
         this.onShutdownCallback = () => Promise.resolve();
         this.verifyClient = (info, next) => __awaiter(this, void 0, void 0, function* () {
             const req = info.req;
-            const url = url_parse_1.default(req.url);
-            req.roomId = url.pathname.substr(1);
-            const query = Utils_1.parseQueryString(url.query);
+            const parsedURL = url_1.default.parse(req.url);
+            // TODO: use only this on version 1.0.
+            // req.roomId = parsedURL.pathname.match(/^\/[0-9a-zA-Z\-]+\/([0-9a-zA-Z\-]+)/)[1];
+            // compatibility with proxying, remove me on 1.0 >>>
+            req.roomId = parsedURL.pathname.substr(1);
+            const processIdIndex = req.roomId.indexOf('/');
+            if (processIdIndex > 0) {
+                req.roomId = req.roomId.substr(processIdIndex + 1);
+            }
+            // <<<<
+            const query = Utils_1.parseQueryString(parsedURL.query);
             req.colyseusid = query.colyseusid;
             delete query.colyseusid;
             req.options = query;
             if (req.roomId) {
                 try {
                     // TODO: refactor me. this piece of code is repeated on MatchMaker class.
-                    const hasReservedSeat = query.sessionId && (yield this.matchMaker.remoteRoomCall(req.roomId, 'hasReservedSeat', [query.sessionId]));
+                    const hasReservedSeat = query.sessionId && (yield this.matchMaker.remoteRoomCall(req.roomId, 'hasReservedSeat', [query.sessionId]))[1];
                     if (!hasReservedSeat) {
-                        const isLocked = yield this.matchMaker.remoteRoomCall(req.roomId, 'locked');
+                        const isLocked = (yield this.matchMaker.remoteRoomCall(req.roomId, 'locked'))[1];
                         if (isLocked) {
                             return next(false, Protocol_1.Protocol.WS_TOO_MANY_CLIENTS, 'maxClients reached.');
                         }
                     }
                     // verify client from room scope.
-                    const authResult = yield this.matchMaker.remoteRoomCall(req.roomId, 'onAuth', [req.options], MatchMaker_1.REMOTE_ROOM_LARGE_TIMEOUT);
+                    const authResult = (yield this.matchMaker.remoteRoomCall(req.roomId, 'onAuth', [req.options], MatchMaker_1.REMOTE_ROOM_LARGE_TIMEOUT))[1];
                     if (authResult) {
                         req.auth = authResult;
                         next(true);
@@ -92,8 +103,8 @@ class Server {
             }
         };
         const { gracefullyShutdown = true } = options;
-        this.presence = options.presence;
-        this.matchMaker = new MatchMaker_1.MatchMaker(this.presence);
+        this.presence = options.presence || new LocalPresence_1.LocalPresence();
+        this.matchMaker = new MatchMaker_1.MatchMaker(this.presence, this.processId);
         this.pingTimeout = (options.pingTimeout !== undefined)
             ? options.pingTimeout
             : 1500;
@@ -134,7 +145,16 @@ class Server {
         }
     }
     listen(port, hostname, backlog, listeningListener) {
-        this.httpServer.listen(port, hostname, backlog, listeningListener);
+        this.httpServer.listen(port, hostname, backlog, () => {
+            if (listeningListener) {
+                listeningListener();
+            }
+            // register node for proxy/service discovery
+            discovery_1.registerNode(this.presence, {
+                addressInfo: this.httpServer.address(),
+                processId: this.processId,
+            });
+        });
     }
     register(name, handler, options = {}) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -142,8 +162,13 @@ class Server {
         });
     }
     gracefullyShutdown(exit = true) {
+        discovery_1.unregisterNode(this.presence, {
+            addressInfo: this.httpServer.address(),
+            processId: this.processId,
+        });
         return this.matchMaker.gracefullyShutdown().
             then(() => {
+            this.server.close();
             clearInterval(this.pingInterval);
             return this.onShutdownCallback();
         }).
@@ -194,9 +219,9 @@ class Server {
                 Utils_1.retry(() => {
                     return this.matchMaker.onJoinRoomRequest(client, roomName, joinOptions);
                 }, 3, 0, [Errors_1.MatchMakeError]).
-                    then((roomId) => __awaiter(this, void 0, void 0, function* () {
-                    Protocol_1.send[Protocol_1.Protocol.JOIN_REQUEST](client, joinOptions.requestId, roomId);
-                })).catch((e) => {
+                    then((response) => {
+                    Protocol_1.send[Protocol_1.Protocol.JOIN_REQUEST](client, joinOptions.requestId, response.roomId, response.processId);
+                }).catch((e) => {
                     const errorMessage = (e && e.message) || '';
                     Debug_1.debugError(`MatchMakeError: ${errorMessage}\n${e.stack}`);
                     Protocol_1.send[Protocol_1.Protocol.JOIN_ERROR](client, errorMessage);
